@@ -20,8 +20,11 @@ export function CartMain({ layout, cart }: CartMainProps) {
   const className = `cart-main ${withDiscount ? 'with-discount' : ''}`;
 
   useEffect(() => {
-    if (typeof document !== 'undefined')
+    if (typeof document !== 'undefined') {
       document.dispatchEvent(new CustomEvent('bogos:gifts', { detail: { cart: { id: cart?.id } } }));
+      document.dispatchEvent(new CustomEvent('bogos:progress-rerender'));
+      document.dispatchEvent(new CustomEvent('bogos:to-widget-render'));
+    }
 
     if (typeof window !== 'undefined' && typeof window.BOGOS_CORE !== 'undefined')
       window.BOGOS_CORE?.helper?.updateCore({
@@ -32,6 +35,7 @@ export function CartMain({ layout, cart }: CartMainProps) {
   return (
     <div className={className}>
       <div className='bogos-cart-message-view'></div>
+      <div className="bogos-progressing-bar-view"></div>
       <CartEmpty hidden={linesCount} layout={layout} />
       <CartDetails cart={cart} layout={layout} />
     </div>
