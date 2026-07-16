@@ -295,6 +295,11 @@ function ProductForm({
         disabled={!selectedVariant || !selectedVariant.availableForSale}
         onClick={() => {
           window.location.href = window.location.href + '#cart-aside';
+
+          setTimeout(() => {
+            typeof document !== "undefined" &&
+              document.dispatchEvent(new CustomEvent("bogos-headless:product-atc"));
+          }, 500)
         }}
         lines={
           selectedVariant
