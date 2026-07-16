@@ -294,12 +294,9 @@ function ProductForm({
       <AddToCartButton
         disabled={!selectedVariant || !selectedVariant.availableForSale}
         onClick={() => {
+          typeof document !== "undefined" &&
+            document.dispatchEvent(new CustomEvent("bogos-headless:product-atc"));
           window.location.href = window.location.href + '#cart-aside';
-
-          setTimeout(() => {
-            typeof document !== "undefined" &&
-              document.dispatchEvent(new CustomEvent("bogos-headless:product-atc"));
-          }, 500)
         }}
         lines={
           selectedVariant
