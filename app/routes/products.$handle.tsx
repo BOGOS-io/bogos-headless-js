@@ -123,8 +123,10 @@ export default function Product() {
         product={product}
         variants={variants}
       />
+       {/* <div id="bogos-bundle-product-page-view" data-offer-id="6"></div> */}
     </div>
     {/* <div id="bogos-bundle-page-view" data-offer-id="37"></div> */}
+    {/* <div id="bogos-offer-page-view" data-offer-id="2"></div> */}
   </>
 
   );
@@ -310,8 +312,12 @@ function ProductForm({
 
       <div id="bogos-bundle-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-mix-match-view" data-product-id={product.id} data-product-handle={product.handle}></div>
-      <div id="bogos-fbt-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      {/* <div id="bogos-fbt-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div> */}
+      <div id="bogos-pa-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-volume-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-cart-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-cheapest-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-product-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
     </div>
   );
 }
