@@ -312,7 +312,7 @@ function ProductForm({
 
       <div id="bogos-bundle-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-mix-match-view" data-product-id={product.id} data-product-handle={product.handle}></div>
-      {/* <div id="bogos-fbt-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div> */}
+      <div id="bogos-fbt-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-pa-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-volume-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-cart-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
