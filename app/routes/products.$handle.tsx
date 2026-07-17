@@ -123,7 +123,7 @@ export default function Product() {
         product={product}
         variants={variants}
       />
-       {/* <div id="bogos-bundle-product-page-view" data-offer-id="6"></div> */}
+      <div id="bogos-bundle-product-page-view"></div>
     </div>
     {/* <div id="bogos-bundle-page-view" data-offer-id="37"></div> */}
     {/* <div id="bogos-offer-page-view" data-offer-id="2"></div> */}
