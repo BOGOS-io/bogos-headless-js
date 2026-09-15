@@ -57,7 +57,7 @@ export function links() {
     },
     {
       rel: 'preconnect',
-      href: 'https://d33a6lvgbd0fej.cloudfront.net',
+      href: 'https://static.bogos.io',
     },
     { rel: 'icon', type: 'image/svg+xml', href: favicon },
   ];
