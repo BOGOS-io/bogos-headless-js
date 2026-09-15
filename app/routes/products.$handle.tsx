@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { defer, redirect, type LoaderArgs } from '@shopify/remix-oxygen';
 import {
   Await,
@@ -115,6 +115,8 @@ export default function Product() {
   const { product, variants } = useLoaderData<typeof loader>();
 
   const { selectedVariant } = product;
+  const bundleOfferId = useBundleProductPageOfferId(product.handle);
+
   return (<>
     <div className="product">
       <ProductImage image={selectedVariant?.image} />
@@ -123,11 +125,53 @@ export default function Product() {
         product={product}
         variants={variants}
       />
+      {bundleOfferId ? (
+        <div id="bogos-bundle-product-page-view" data-offer-id={bundleOfferId}></div>
+      ) : null}
     </div>
     {/* <div id="bogos-bundle-page-view" data-offer-id="37"></div> */}
+    {/* <div id="bogos-offer-page-view" data-offer-id="2"></div> */}
   </>
 
   );
+}
+
+function useBundleProductPageOfferId(handle: string): string | null {
+  const [offerId, setOfferId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let attempts = 0;
+    const findOffer = () => {
+      const bundles = (window as any).FGSECOMAPP?.bundles;
+      if (Array.isArray(bundles)) {
+        const match: any = bundles.find(
+          (b: any) =>
+            b?.type === 'bundle_product_page' &&
+            b?.extra_info?.product_bundle_handle === handle,
+        );
+        if (match?.id != null) {
+          setOfferId(String(match.id));
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (findOffer()) return;
+
+    const timer = setInterval(() => {
+      attempts += 1;
+      if (findOffer() || attempts >= 20) {
+        clearInterval(timer);
+      }
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [handle]);
+
+  return offerId;
 }
 
 function ProductImage({ image }: { image: ProductVariantFragment['image'] }) {
@@ -292,6 +336,8 @@ function ProductForm({
       <AddToCartButton
         disabled={!selectedVariant || !selectedVariant.availableForSale}
         onClick={() => {
+          typeof document !== "undefined" &&
+            document.dispatchEvent(new CustomEvent("bogos-headless:product-atc"));
           window.location.href = window.location.href + '#cart-aside';
         }}
         lines={
@@ -311,7 +357,11 @@ function ProductForm({
       <div id="bogos-bundle-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-mix-match-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-fbt-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-pa-upsell-view" data-product-id={product.id} data-product-handle={product.handle}></div>
       <div id="bogos-volume-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-cart-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-cheapest-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
+      <div id="bogos-product-discount-view" data-product-id={product.id} data-product-handle={product.handle}></div>
     </div>
   );
 }

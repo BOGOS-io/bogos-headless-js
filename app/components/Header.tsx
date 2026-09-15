@@ -82,6 +82,15 @@ export function HeaderMenu({
       >
         Bundle-page
       </NavLink>
+
+      <NavLink
+        className="header-menu-item"
+        end
+        prefetch="intent"
+        to={'/offer-page'}
+      >
+        Offer-page
+      </NavLink>
     </nav>
   );
 }
