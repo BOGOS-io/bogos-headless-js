@@ -134,7 +134,7 @@ function ProductItem({
       style={{ position: 'relative' }}
     >
       {product.featuredImage && (
-        <div className="bogos-card-media">
+        <div className="card__media">
           <Image
             alt={product.featuredImage.altText || product.title}
             aspectRatio="1/1"

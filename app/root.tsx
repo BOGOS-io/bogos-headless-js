@@ -164,22 +164,6 @@ export default function App() {
         <Meta />
         <Links />
 
-        {/*
-          Tells BOGOS which elements are product cards and which box holds the
-          card image, the same way a theme does through its app settings. Must
-          run before bogos-core: the SDK snapshots this at boot.
-        */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.Shopify = window.Shopify || {};
-          window.Shopify.scaHandleConfigValue = Object.assign({
-            sca_fg_img_collection_gift_icon_query: '.fg-secomapp-collection-img',
-            bogos_product_card_media_query: '.bogos-card-media',
-            bogos_product_card_price_query: '.bogos-card-price'
-          }, window.Shopify.scaHandleConfigValue);`,
-          }}
-        />
-
         <script
           id="bogos-core"
           src={data.env.BOGOS_JS_SDK}

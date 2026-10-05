@@ -6,15 +6,15 @@ import {useEffect} from 'react';
  * Product discount on listing pages (collection, home, search).
  *
  * The SDK renders everything itself -- the discounted price and the badge over
- * the card image. All this file does is give it the hooks it needs:
+ * the card image. It finds the pieces by CSS class, so the cards just have to
+ * use the class names it already looks for:
  *
- *   - the marker div below, so the SDK can resolve a card to a product
- *   - `.bogos-card-media` on the box holding the image (badge goes there)
- *   - `.bogos-card-price` around the native price (SDK hides it, inserts its own)
- *   - a `bogos:discount-init` dispatch whenever the list changes
+ *   - `.fg-secomapp-collection-img` on the card (already there for gift icons)
+ *   - `.card__media` on the box holding the image -- the badge goes there
+ *   - `.price` around the native price -- the SDK hides it and inserts its own
  *
- * The two class names are registered with the SDK in root.tsx, via
- * Shopify.scaHandleConfigValue -- the same mechanism a theme uses.
+ * Plus the marker div below, and a `bogos:discount-init` dispatch when the list
+ * changes.
  */
 
 type MoneyData = React.ComponentProps<typeof Money>['data'];
@@ -54,12 +54,9 @@ export function BogosProductDiscountPrice({
 }) {
   return (
     <>
-      <div
-        className="bogos-integration-page-builder-product-discount"
-        data-product-id={productId}
-        data-product-handle={productHandle}
-      />
-      <span className="bogos-card-price">{price && <Money data={price} />}</span>
+      <span className="price">
+        {price && <Money data={price} />}
+      </span>
     </>
   );
 }
