@@ -12,7 +12,6 @@ import type {
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
 import {
-  BogosProductDiscountBadge,
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
@@ -134,11 +133,13 @@ const ProductItem = ({ product }: { product: any }) => {
     className="recommended-product fg-secomapp-collection-img"
     to={`/products/${product.handle}`}
   >
-    <Image
-      data={product.images.nodes[0]}
-      aspectRatio="1/1"
-      sizes="(min-width: 45em) 20vw, 50vw"
-    />
+    <div className="bogos-card-media">
+      <Image
+        data={product.images.nodes[0]}
+        aspectRatio="1/1"
+        sizes="(min-width: 45em) 20vw, 50vw"
+      />
+    </div>
     <h4>{product.title}</h4>
     <small>
       <BogosProductDiscountPrice
@@ -147,7 +148,6 @@ const ProductItem = ({ product }: { product: any }) => {
         price={product.priceRange.minVariantPrice}
       />
     </small>
-    <BogosProductDiscountBadge productId={product.id} />
   </Link>
 }
 

@@ -9,7 +9,6 @@ import type { ProductItemFragment } from 'storefrontapi.generated';
 import { useVariantUrl } from '~/utils';
 import { useEffect, useState } from 'react';
 import {
-  BogosProductDiscountBadge,
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
@@ -135,13 +134,15 @@ function ProductItem({
       style={{ position: 'relative' }}
     >
       {product.featuredImage && (
-        <Image
-          alt={product.featuredImage.altText || product.title}
-          aspectRatio="1/1"
-          data={product.featuredImage}
-          loading={loading}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
+        <div className="bogos-card-media">
+          <Image
+            alt={product.featuredImage.altText || product.title}
+            aspectRatio="1/1"
+            data={product.featuredImage}
+            loading={loading}
+            sizes="(min-width: 45em) 400px, 100vw"
+          />
+        </div>
       )}
       <h4>{product.title}</h4>
       <small>
@@ -151,7 +152,6 @@ function ProductItem({
           price={product.priceRange.minVariantPrice}
         />
       </small>
-      <BogosProductDiscountBadge productId={product.id} />
     </Link>
   );
 }

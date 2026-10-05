@@ -1,5 +1,5 @@
-import { useNonce } from '@shopify/hydrogen';
-import { defer, type LoaderArgs } from '@shopify/remix-oxygen';
+import {useNonce} from '@shopify/hydrogen';
+import {defer, type LoaderArgs} from '@shopify/remix-oxygen';
 import {
   Links,
   Meta,
@@ -14,14 +14,14 @@ import {
   type ShouldRevalidateFunction,
   useRevalidator,
 } from '@remix-run/react';
-import type { CustomerAccessToken } from '@shopify/hydrogen/storefront-api-types';
-import type { HydrogenSession } from '../server';
+import type {CustomerAccessToken} from '@shopify/hydrogen/storefront-api-types';
+import type {HydrogenSession} from '../server';
 import favicon from '../public/favicon.svg';
 import resetStyles from './styles/reset.css';
 import appStyles from './styles/app.css';
-import { Layout } from '~/components/Layout';
+import {Layout} from '~/components/Layout';
 import tailwindCss from './styles/tailwind.css';
-import { useEffect } from 'react';
+import {useEffect} from 'react';
 
 // This is important to avoid re-fetching root queries on sub-navigations
 export const shouldRevalidate: ShouldRevalidateFunction = ({
@@ -44,9 +44,9 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 
 export function links() {
   return [
-    { rel: 'stylesheet', href: tailwindCss },
-    { rel: 'stylesheet', href: resetStyles },
-    { rel: 'stylesheet', href: appStyles },
+    {rel: 'stylesheet', href: tailwindCss},
+    {rel: 'stylesheet', href: resetStyles},
+    {rel: 'stylesheet', href: appStyles},
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -59,17 +59,17 @@ export function links() {
       rel: 'preconnect',
       href: 'https://static.bogos.io',
     },
-    { rel: 'icon', type: 'image/svg+xml', href: favicon },
+    {rel: 'icon', type: 'image/svg+xml', href: favicon},
   ];
 }
 
-export async function loader({ context }: LoaderArgs) {
-  const { storefront, session, cart, env } = context;
+export async function loader({context}: LoaderArgs) {
+  const {storefront, session, cart, env} = context;
   const customerAccessToken = await session.get('customerAccessToken');
   const publicStoreDomain = context.env.PUBLIC_STORE_DOMAIN;
 
   // validate the customer access token is valid
-  const { isLoggedIn, headers } = await validateCustomerAccessToken(
+  const {isLoggedIn, headers} = await validateCustomerAccessToken(
     customerAccessToken,
     session,
   );
@@ -78,7 +78,7 @@ export async function loader({ context }: LoaderArgs) {
   let cartPromise = cart.get();
   const cartInfo = await cartPromise;
   if (!cartInfo) {
-    const newCart = await cart.addLines([]) as any;
+    const newCart = (await cart.addLines([])) as any;
     console.log('New cart created with id:', newCart?.cart?.id);
     const headersCart = cart.setCartId(newCart?.cart?.id);
     for (const [key, value] of headersCart.entries()) {
@@ -116,9 +116,9 @@ export async function loader({ context }: LoaderArgs) {
         // localize the privacy banner
         country: storefront.i18n.country,
         language: storefront.i18n.language,
-      }
+      },
     },
-    { headers },
+    {headers},
   );
 }
 
@@ -127,10 +127,13 @@ export default function App() {
   const data = useLoaderData<typeof loader>();
   // const revalidator = useRevalidator();
 
-  if (typeof window !== 'undefined' && typeof window.BOGOS_CORE !== 'undefined') {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.BOGOS_CORE !== 'undefined'
+  ) {
     window.BOGOS_CORE?.helper?.updateCore({
       ...data?.consent,
-      enable_check_variants_has_gift: true
+      enable_check_variants_has_gift: true,
     });
   }
 
@@ -161,12 +164,30 @@ export default function App() {
         <Meta />
         <Links />
 
-        <script id="bogos-core" src={data.env.BOGOS_JS_SDK} defer
+        {/*
+          Tells BOGOS which elements are product cards and which box holds the
+          card image, the same way a theme does through its app settings. Must
+          run before bogos-core: the SDK snapshots this at boot.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.Shopify = window.Shopify || {};
+          window.Shopify.scaHandleConfigValue = Object.assign({
+            sca_fg_img_collection_gift_icon_query: '.fg-secomapp-collection-img',
+            bogos_product_card_media_query: '.bogos-card-media',
+            bogos_product_card_price_query: '.bogos-card-price'
+          }, window.Shopify.scaHandleConfigValue);`,
+          }}
+        />
+
+        <script
+          id="bogos-core"
+          src={data.env.BOGOS_JS_SDK}
+          defer
           data-storefront-api-token={data.env.PUBLIC_STOREFRONT_API_TOKEN}
           data-myshopify-domain={data.env.PUBLIC_STORE_DOMAIN}
           data-bogos-key={data.env.BOGOS_ACCESS_TOKEN}
         />
-
       </head>
       <body>
         <Layout {...data}>
@@ -242,7 +263,7 @@ async function validateCustomerAccessToken(
   let isLoggedIn = false;
   const headers = new Headers();
   if (!customerAccessToken?.accessToken || !customerAccessToken?.expiresAt) {
-    return { isLoggedIn, headers };
+    return {isLoggedIn, headers};
   }
   const expiresAt = new Date(customerAccessToken.expiresAt);
   const dateNow = new Date();
@@ -254,7 +275,7 @@ async function validateCustomerAccessToken(
     isLoggedIn = true;
   }
 
-  return { isLoggedIn, headers };
+  return {isLoggedIn, headers};
 }
 
 const MENU_FRAGMENT = `#graphql
