@@ -6,11 +6,16 @@ import {
   type V2_MetaFunction,
 } from '@remix-run/react';
 import { Suspense, useEffect, useState } from 'react';
-import { Image, Money } from '@shopify/hydrogen';
+import { Image } from '@shopify/hydrogen';
 import type {
   FeaturedCollectionFragment,
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
+import {
+  BogosProductDiscountPrice,
+  bogosListKey,
+  useBogosProductListSync,
+} from '~/components/BogosProductDiscount';
 
 export const meta: V2_MetaFunction = () => {
   return [{ title: 'Hydrogen | Home' }];
@@ -68,17 +73,28 @@ function RecommendedProducts({
       <h2>Recommended Products</h2>
       <Suspense fallback={<div>Loading...</div>}>
         <Await resolve={products}>
-          {({ products }) => (
-            <div className="recommended-products-grid">
-              {products.nodes.map((product) => (<ProductItem key={`${product.id}`} product={product} />))}
-            </div>
-          )}
+          {({ products }) => <RecommendedProductsGrid products={products.nodes} />}
         </Await>
       </Suspense>
       <br />
     </div>
   );
 }
+
+// separate component so the sync hook can run: hooks cannot be called inside
+// the Await render prop above
+const RecommendedProductsGrid = ({ products }: { products: any[] }) => {
+  // re-matches the cards to BOGOS offers once the deferred products resolve
+  useBogosProductListSync(bogosListKey(products));
+
+  return (
+    <div className="recommended-products-grid">
+      {products.map((product) => (
+        <ProductItem key={`${product.id}`} product={product} />
+      ))}
+    </div>
+  );
+};
 
 const ProductItem = ({ product }: { product: any }) => {
 
@@ -124,7 +140,11 @@ const ProductItem = ({ product }: { product: any }) => {
     />
     <h4>{product.title}</h4>
     <small>
-      <Money data={product.priceRange.minVariantPrice} />
+      <BogosProductDiscountPrice
+        productId={product.id}
+        productHandle={product.handle}
+        price={product.priceRange.minVariantPrice}
+      />
     </small>
   </Link>
 }

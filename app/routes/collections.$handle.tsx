@@ -4,11 +4,15 @@ import {
   Pagination,
   getPaginationVariables,
   Image,
-  Money,
 } from '@shopify/hydrogen';
 import type { ProductItemFragment } from 'storefrontapi.generated';
 import { useVariantUrl } from '~/utils';
 import { useEffect, useState } from 'react';
+import {
+  BogosProductDiscountPrice,
+  bogosListKey,
+  useBogosProductListSync,
+} from '~/components/BogosProductDiscount';
 
 export const meta: V2_MetaFunction = ({ data }) => {
   return [{ title: `Hydrogen | ${data.collection.title} Collection` }];
@@ -63,6 +67,9 @@ export default function Collection() {
 }
 
 function ProductsGrid({ products }: { products: ProductItemFragment[] }) {
+  // re-matches the cards to BOGOS offers whenever the page of products changes
+  useBogosProductListSync(bogosListKey(products));
+
   return (
     <div className="products-grid">
       {products.map((product, index) => {
@@ -137,7 +144,11 @@ function ProductItem({
       )}
       <h4>{product.title}</h4>
       <small>
-        <Money data={product.priceRange.minVariantPrice} />
+        <BogosProductDiscountPrice
+          productId={product.id}
+          productHandle={product.handle}
+          price={product.priceRange.minVariantPrice}
+        />
       </small>
     </Link>
   );

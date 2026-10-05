@@ -8,6 +8,11 @@ import {
 } from '@remix-run/react';
 import {Image, Money, Pagination} from '@shopify/hydrogen';
 import React, {useRef, useEffect} from 'react';
+import {
+  BogosProductDiscountPrice,
+  bogosListKey,
+  useBogosProductListSync,
+} from '~/components/BogosProductDiscount';
 
 import type {
   PredictiveProductFragment,
@@ -153,35 +158,65 @@ function SearchResultsProductsGrid({products}: Pick<SearchQuery, 'products'>) {
     <div className="search-result">
       <h3>Products</h3>
       <Pagination connection={products}>
-        {({nodes, isLoading, NextLink, PreviousLink}) => {
-          const itemsMarkup = nodes.map((product) => (
-            <div className="search-results-item" key={product.id}>
-              <Link prefetch="intent" to={`/products/${product.handle}`}>
-                <span>{product.title}</span>
-              </Link>
-            </div>
-          ));
-          return (
-            <div>
-              <div>
-                <PreviousLink>
-                  {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-                </PreviousLink>
-              </div>
-              <div>
-                {itemsMarkup}
-                <br />
-              </div>
-              <div>
-                <NextLink>
-                  {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-                </NextLink>
-              </div>
-            </div>
-          );
-        }}
+        {({nodes, isLoading, NextLink, PreviousLink}) => (
+          <SearchResultsProductsPage
+            nodes={nodes}
+            isLoading={isLoading}
+            NextLink={NextLink}
+            PreviousLink={PreviousLink}
+          />
+        )}
       </Pagination>
       <br />
+    </div>
+  );
+}
+
+// separate component so the sync hook can run: hooks cannot be called inside
+// the Pagination render prop above
+function SearchResultsProductsPage({
+  nodes,
+  isLoading,
+  NextLink,
+  PreviousLink,
+}: {
+  nodes: SearchQuery['products']['nodes'];
+  isLoading: boolean;
+  NextLink: React.ComponentType<{children: React.ReactNode}>;
+  PreviousLink: React.ComponentType<{children: React.ReactNode}>;
+}) {
+  // re-matches the cards to BOGOS offers on every page of results
+  useBogosProductListSync(bogosListKey(nodes));
+
+  return (
+    <div>
+      <div>
+        <PreviousLink>
+          {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
+        </PreviousLink>
+      </div>
+      <div>
+        {nodes.map((product) => (
+          <div className="search-results-item" key={product.id}>
+            <Link prefetch="intent" to={`/products/${product.handle}`}>
+              <span>{product.title}</span>
+            </Link>
+            <small>
+              <BogosProductDiscountPrice
+                productId={product.id}
+                productHandle={product.handle}
+                price={product.variants.nodes[0]?.price}
+              />
+            </small>
+          </div>
+        ))}
+        <br />
+      </div>
+      <div>
+        <NextLink>
+          {isLoading ? 'Loading...' : <span>Load more ↓</span>}
+        </NextLink>
+      </div>
     </div>
   );
 }
