@@ -9,6 +9,7 @@ import {
 import {Image, Money, Pagination} from '@shopify/hydrogen';
 import React, {useRef, useEffect} from 'react';
 import {
+  BogosProductDiscountBadge,
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
@@ -208,6 +209,8 @@ function SearchResultsProductsPage({
                 price={product.variants.nodes[0]?.price}
               />
             </small>
+            {/* no image in this row, so the badge flows inline (--no-media) */}
+            <BogosProductDiscountBadge productId={product.id} />
           </div>
         ))}
         <br />

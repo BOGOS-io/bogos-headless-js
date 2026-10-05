@@ -9,6 +9,7 @@ import type { ProductItemFragment } from 'storefrontapi.generated';
 import { useVariantUrl } from '~/utils';
 import { useEffect, useState } from 'react';
 import {
+  BogosProductDiscountBadge,
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
@@ -150,6 +151,7 @@ function ProductItem({
           price={product.priceRange.minVariantPrice}
         />
       </small>
+      <BogosProductDiscountBadge productId={product.id} />
     </Link>
   );
 }

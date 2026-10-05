@@ -1,15 +1,11 @@
 import {Money} from '@shopify/hydrogen';
 import type React from 'react';
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 /**
- * BOGOS product discount pricing for listing pages (collection, home, search).
- *
- * The SDK's own renderProductList resolves cards by HANDLE, and handle-fetch is
- * disabled when isHeadless -- so it renders nothing here. We compute instead
- * from FGSECOMAPP.discounts + BOGOS.block_products, which IS populated.
- *
- * Ported from discount.js, SDK build 20260722-1784688973. Keep in sync.
+ * Product discount on listing pages. The SDK's renderProductList resolves cards
+ * by handle, which is disabled on headless, so we compute it here instead.
+ * Ported from discount.js, SDK build 20260722-1784688973.
  */
 
 const DISCOUNT_APPLY_TYPE = {
@@ -27,6 +23,18 @@ const DEFAULT_COLORS = {
 
 const DEFAULT_LABEL = '{{discount_amount}} OFF';
 
+const LABEL_POSITIONS = [
+  'image_top_left',
+  'image_top_right',
+  'image_bottom_left',
+  'image_bottom_right',
+] as const;
+type LabelPosition = (typeof LABEL_POSITIONS)[number];
+const DEFAULT_POSITION: LabelPosition = 'image_top_right';
+
+/** Below this an element is an icon, not product media. */
+const MIN_CARD_MEDIA_WIDTH = 80;
+
 type MoneyData = React.ComponentProps<typeof Money>['data'];
 
 type BogosDiscountResult = {
@@ -37,7 +45,6 @@ type BogosDiscountResult = {
   config: SurfaceConfig;
 };
 
-/** Same shape productDiscount.getSurfaceCfg returns. */
 type SurfaceConfig = {
   status: boolean;
   display_discount_price: {status: boolean; font_size: number; style: string};
@@ -46,20 +53,23 @@ type SurfaceConfig = {
     style: string;
     line_through: boolean;
   };
-  discount_label: {status: boolean; label: string};
+  discount_label: {status: boolean; label: string; position: LabelPosition};
 };
 
 /**
- * Ported from getSurfaceCfg(PRODUCT_LIST). The list has its own config under
- * price_display.product_list -- the top-level keys are the product-page tier.
- * Master switch defaults ON, product_list defaults OFF (absent means off).
+ * getSurfaceCfg(PRODUCT_LIST). The list tier is price_display.product_list;
+ * top-level keys are the product page. Master defaults ON, list defaults OFF.
  */
 function getProductListConfig(): SurfaceConfig {
   const OFF: SurfaceConfig = {
     status: false,
     display_discount_price: {status: false, font_size: 14, style: 'bold'},
     display_original_price: {font_size: 12, style: 'normal', line_through: true},
-    discount_label: {status: false, label: DEFAULT_LABEL},
+    discount_label: {
+      status: false,
+      label: DEFAULT_LABEL,
+      position: DEFAULT_POSITION,
+    },
   };
 
   const pdGeneral =
@@ -70,6 +80,8 @@ function getProductListConfig(): SurfaceConfig {
 
   const listCfg = pdGeneral?.product_list;
   if (!listCfg || Object.keys(listCfg).length === 0) return OFF;
+
+  const rawPosition = listCfg?.discount_label?.position;
 
   return {
     status: listCfg?.status ?? false,
@@ -86,11 +98,13 @@ function getProductListConfig(): SurfaceConfig {
     discount_label: {
       status: listCfg?.discount_label?.status ?? true,
       label: listCfg?.discount_label?.label ?? DEFAULT_LABEL,
+      position: LABEL_POSITIONS.includes(rawPosition as LabelPosition)
+        ? (rawPosition as LabelPosition)
+        : DEFAULT_POSITION,
     },
   };
 }
 
-/** gid://shopify/Product/123 -> 123 */
 function toLegacyId(id: string | number | undefined | null): number {
   if (id === undefined || id === null) return 0;
   const last = String(id).split('/').pop() ?? '';
@@ -98,7 +112,7 @@ function toLegacyId(id: string | number | undefined | null): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-/** Ported from convertDiscountMarket: converts a value to the active currency. */
+/** convertDiscountMarket */
 function convertDiscountValue(entry: any, utils: any): number {
   const activeCurrency =
     window.FGSECOMAPP?.variables?.Shopify?.currency?.active;
@@ -117,7 +131,7 @@ function convertDiscountValue(entry: any, utils: any): number {
   return converted;
 }
 
-/** Ported from calculateDiscountPrice ('total' mode). */
+/** calculateDiscountPrice, 'total' mode. */
 function calculateDiscountPrice(
   entry: any,
   basePrice: number,
@@ -143,7 +157,7 @@ function calculateDiscountPrice(
   return parseFloat(result.toFixed(decimal));
 }
 
-/** Ported from getCountdownEndTime: a recurring offer outside its window is off. */
+/** A recurring offer outside its active window does not apply. */
 function isOfferActive(offer: any): boolean {
   if (!offer?.recurring_status) return true;
   const recurringHandler = window.FGSECOMAPP?.helper?.recurring_handler;
@@ -155,7 +169,7 @@ function isOfferActive(offer: any): boolean {
   return Boolean(end);
 }
 
-/** Ported from selectBestOffer: largest savings wins. */
+/** selectBestOffer: largest savings wins. */
 function selectBestOffer(offers: any[], basePrice: number, utils: any) {
   let best: {
     offer: any;
@@ -172,7 +186,6 @@ function selectBestOffer(offers: any[], basePrice: number, utils: any) {
     let discountedPrice = calculateDiscountPrice(entry, basePrice, utils);
     let cappedAmount: number | null = null;
 
-    // percentage with max_amount: never discount beyond the cap
     if (entry.type === DISCOUNT_APPLY_TYPE.percentage && entry.max_amount) {
       const maxAmount = convertDiscountValue(
         {
@@ -188,7 +201,6 @@ function selectBestOffer(offers: any[], basePrice: number, utils: any) {
       }
     }
 
-    // round the cents to the configured ending (e.g. 0.99)
     if (entry.override_cents != null && discountedPrice < basePrice) {
       discountedPrice = Math.floor(discountedPrice) + entry.override_cents / 100;
     }
@@ -202,7 +214,7 @@ function selectBestOffer(offers: any[], basePrice: number, utils: any) {
   return best;
 }
 
-/** Builds the variant rows the SDK's findProductsMatchConditions expects. */
+/** Rows in the shape findProductsMatchConditions expects. */
 function buildVariantRows(info: any) {
   return (info?.variants ?? []).map((variant: any) => ({
     variant_id: variant.id,
@@ -222,14 +234,12 @@ function computeDiscount(productId: string): BogosDiscountResult | null {
   const utils = fg?.helper?.utils;
   if (!fg || !utils?.findProductsMatchConditions) return null;
 
-  // product-list price display turned off in the app settings
   const config = getProductListConfig();
   if (!config.status) return null;
 
   const legacyId = toLegacyId(productId);
   if (!legacyId) return null;
 
-  // searchProductsBlock('product_discount') loads full product info here
   const info =
     window.BOGOS?.block_products?.[legacyId] ?? fg.productsByID?.[legacyId];
   if (!info?.variants?.length) return null;
@@ -249,8 +259,7 @@ function computeDiscount(productId: string): BogosDiscountResult | null {
   );
   if (!eligible.length) return null;
 
-  // 1 on headless (GraphQL decimals), 100 on a theme (cart.js cents).
-  // Default to the SDK's own 100 so a wrong value is visible, not 100x off.
+  // 1 on headless, 100 on a theme. Default to the SDK's own 100.
   const ratePrice = fg.variables?.RATE_PRICE ?? 100;
   const originalPrice =
     (info.current_variant?.price ?? info.variants[0]?.price ?? 0) / ratePrice;
@@ -262,7 +271,6 @@ function computeDiscount(productId: string): BogosDiscountResult | null {
   const badgeLabel = buildBadgeLabel(best, originalPrice, config, utils);
   const showSalePrice = config.display_discount_price.status;
 
-  // merchant hid the price and there is no badge either
   if (!showSalePrice && !badgeLabel) return null;
 
   return {
@@ -307,7 +315,7 @@ function formatPrice(amount: number, utils: any): string {
   }
 }
 
-/** Null while the SDK loads or when no offer matches -- caller shows base price. */
+/** Null while the SDK loads or when no offer matches. */
 export function useBogosProductDiscount(
   productId: string,
 ): BogosDiscountResult | null {
@@ -325,12 +333,9 @@ export function useBogosProductDiscount(
       }
     };
 
-    // fires at the end of every render pass, so block_products is ready
     document.addEventListener('bogos:product-discount-render', recompute);
-    // SDK finished booting after this card mounted
     document.addEventListener('fg-app:end', recompute);
 
-    // ...or before it mounted
     recompute();
 
     return () => {
@@ -343,12 +348,9 @@ export function useBogosProductDiscount(
 }
 
 /**
- * Tells BOGOS to re-read the cards on the page. Card matching only runs on
- * 'bogos:discount-init', so cards rendered after boot (client-side navigation,
- * pagination, filters) stay invisible until this fires.
- *
- * Call from every page rendering a product list. Debounced 250ms by the SDK,
- * so one dispatch per render pass covers every card in it.
+ * Re-matches the cards on the page. Card matching only runs on
+ * 'bogos:discount-init', so cards rendered after boot stay invisible until this
+ * fires. Call from every page rendering a product list.
  */
 export function useBogosProductListSync(listKey: string) {
   useEffect(() => {
@@ -357,7 +359,6 @@ export function useBogosProductListSync(listKey: string) {
   }, [listKey]);
 }
 
-/** Stable key for useBogosProductListSync. */
 export function bogosListKey(
   products: ReadonlyArray<{id: string}> | undefined | null,
 ): string {
@@ -365,9 +366,8 @@ export function bogosListKey(
 }
 
 /**
- * Card price that swaps to the discounted price when BOGOS has an offer.
- * The marker div is how the SDK finds the card -- a class, not an id, because
- * a page holds many.
+ * Card price. The marker div is how the SDK finds the card. Price only -- the
+ * badge goes over the media, see BogosProductDiscountBadge.
  */
 export function BogosProductDiscountPrice({
   productId,
@@ -387,9 +387,11 @@ export function BogosProductDiscountPrice({
       ? window.FGSECOMAPP?.fgAppearance?.product_discount?.color?.price_display
       : null) ?? {};
 
-  // from computeDiscount, so sizes follow the product-list settings
   const saleStyle = discount?.config.display_discount_price;
   const originalStyle = discount?.config.display_original_price;
+  const showPrice = Boolean(
+    discount?.showSalePrice && saleStyle && originalStyle,
+  );
 
   return (
     <>
@@ -398,56 +400,113 @@ export function BogosProductDiscountPrice({
         data-product-id={productId}
         data-product-handle={productHandle}
       />
-      {discount ? (
-        <div className="bogos-pd-price-display">
-          {discount.showSalePrice && saleStyle && originalStyle && (
-            <>
-              <span
-                className="bogos-pd-price-sale transcy-money"
-                style={{
-                  color:
-                    colors.discount_price_color ??
-                    DEFAULT_COLORS.discount_price_color,
-                  fontSize: `${saleStyle.font_size}px`,
-                  fontWeight: saleStyle.style === 'bold' ? 700 : 400,
-                }}
-              >
-                {formatPrice(discount.salePrice, utils)}
-              </span>
-              <span
-                className="bogos-pd-price-original transcy-money"
-                style={{
-                  color:
-                    colors.number_wrap_color ?? DEFAULT_COLORS.number_wrap_color,
-                  fontSize: `${originalStyle.font_size}px`,
-                  fontWeight: originalStyle.style === 'bold' ? 700 : 400,
-                  textDecoration: originalStyle.line_through
-                    ? 'line-through'
-                    : 'none',
-                }}
-              >
-                {formatPrice(discount.originalPrice, utils)}
-              </span>
-            </>
-          )}
-          {discount.badgeLabel && (
-            <span
-              className="bogos-pd-price-badge"
-              style={{
-                background:
-                  colors.discount_label_color ?? DEFAULT_COLORS.discount_label_color,
-                color:
-                  colors.discount_label_text_color ??
-                  DEFAULT_COLORS.discount_label_text_color,
-              }}
-            >
-              {discount.badgeLabel}
-            </span>
-          )}
+      {showPrice && discount ? (
+        <div className="bogos-pd-card-price">
+          <span
+            className="bogos-pd-price-sale transcy-money"
+            style={{
+              color:
+                colors.discount_price_color ??
+                DEFAULT_COLORS.discount_price_color,
+              fontSize: `${saleStyle!.font_size}px`,
+              fontWeight: saleStyle!.style === 'bold' ? 700 : 400,
+            }}
+          >
+            {formatPrice(discount.salePrice, utils)}
+          </span>
+          <span
+            className="bogos-pd-price-original transcy-money"
+            style={{
+              color:
+                colors.number_wrap_color ?? DEFAULT_COLORS.number_wrap_color,
+              fontSize: `${originalStyle!.font_size}px`,
+              fontWeight: originalStyle!.style === 'bold' ? 700 : 400,
+              textDecoration: originalStyle!.line_through
+                ? 'line-through'
+                : 'none',
+            }}
+          >
+            {formatPrice(discount.originalPrice, utils)}
+          </span>
         </div>
       ) : (
         price && <Money data={price} />
       )}
     </>
+  );
+}
+
+/**
+ * Discount badge, overlaid on the card media at `discount_label.position`.
+ * Render it as the LAST child of the element holding the image -- it positions
+ * itself against its parent. No usable image falls back to inline (--no-media).
+ */
+export function BogosProductDiscountBadge({productId}: {productId: string}) {
+  const discount = useBogosProductDiscount(productId);
+  const badgeRef = useRef<HTMLDivElement>(null);
+
+  const colors =
+    (typeof window !== 'undefined'
+      ? window.FGSECOMAPP?.fgAppearance?.product_discount?.color?.price_display
+      : null) ?? {};
+
+  const label = discount?.badgeLabel ?? null;
+  const [hasMedia, setHasMedia] = useState(true);
+
+  useEffect(() => {
+    const badge = badgeRef.current;
+    const card = badge?.parentElement;
+    if (!badge || !card) return;
+
+    if (!label) {
+      card.classList.remove('bogos-pd-price-dp-collection');
+      card.style.removeProperty('--bogos-pd-media-h');
+      return;
+    }
+
+    card.classList.add('bogos-pd-price-dp-collection');
+    if (getComputedStyle(card).position === 'static') {
+      card.style.setProperty('position', 'relative');
+    }
+
+    const mediaImg = Array.from(card.querySelectorAll('img'))
+      .filter((img) => !img.closest('button, [role="button"]'))
+      .reduce<HTMLImageElement | null>(
+        (widest, img) => (img.offsetWidth > (widest?.offsetWidth ?? 0) ? img : widest),
+        null,
+      );
+
+    if (mediaImg && mediaImg.offsetWidth >= MIN_CARD_MEDIA_WIDTH) {
+      const height =
+        mediaImg.getBoundingClientRect().bottom -
+        card.getBoundingClientRect().top;
+      card.style.setProperty('--bogos-pd-media-h', `${Math.round(height)}px`);
+      setHasMedia(true);
+    } else {
+      card.style.removeProperty('--bogos-pd-media-h');
+      setHasMedia(false);
+    }
+  }, [label]);
+
+  if (!label) return <div ref={badgeRef} hidden />;
+
+  const positionClass = `bogos-pd-card-badge--${discount!.config.discount_label.position.replace(/_/g, '-')}`;
+
+  return (
+    <div
+      ref={badgeRef}
+      className={`bogos-pd-card-badge ${positionClass}${
+        hasMedia ? '' : ' bogos-pd-card-badge--no-media'
+      }`}
+      style={{
+        background:
+          colors.discount_label_color ?? DEFAULT_COLORS.discount_label_color,
+        color:
+          colors.discount_label_text_color ??
+          DEFAULT_COLORS.discount_label_text_color,
+      }}
+    >
+      {label}
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import type {
   RecommendedProductsQuery,
 } from 'storefrontapi.generated';
 import {
+  BogosProductDiscountBadge,
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
@@ -146,6 +147,7 @@ const ProductItem = ({ product }: { product: any }) => {
         price={product.priceRange.minVariantPrice}
       />
     </small>
+    <BogosProductDiscountBadge productId={product.id} />
   </Link>
 }
 
