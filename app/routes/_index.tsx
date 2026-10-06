@@ -133,7 +133,7 @@ const ProductItem = ({ product }: { product: any }) => {
     className="recommended-product fg-secomapp-collection-img"
     to={`/products/${product.handle}`}
   >
-    <div className="card__media">
+    <div className="card__media bogos-product-card-media">
       <Image
         data={product.images.nodes[0]}
         aspectRatio="1/1"

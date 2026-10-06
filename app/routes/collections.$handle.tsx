@@ -1,26 +1,22 @@
-import { json, redirect, type LoaderArgs } from '@shopify/remix-oxygen';
-import { useLoaderData, Link, type V2_MetaFunction } from '@remix-run/react';
-import {
-  Pagination,
-  getPaginationVariables,
-  Image,
-} from '@shopify/hydrogen';
-import type { ProductItemFragment } from 'storefrontapi.generated';
-import { useVariantUrl } from '~/utils';
-import { useEffect, useState } from 'react';
+import {json, redirect, type LoaderArgs} from '@shopify/remix-oxygen';
+import {useLoaderData, Link, type V2_MetaFunction} from '@remix-run/react';
+import {Pagination, getPaginationVariables, Image} from '@shopify/hydrogen';
+import type {ProductItemFragment} from 'storefrontapi.generated';
+import {useVariantUrl} from '~/utils';
+import {useEffect, useState} from 'react';
 import {
   BogosProductDiscountPrice,
   bogosListKey,
   useBogosProductListSync,
 } from '~/components/BogosProductDiscount';
 
-export const meta: V2_MetaFunction = ({ data }) => {
-  return [{ title: `Hydrogen | ${data.collection.title} Collection` }];
+export const meta: V2_MetaFunction = ({data}) => {
+  return [{title: `Hydrogen | ${data.collection.title} Collection`}];
 };
 
-export async function loader({ request, params, context }: LoaderArgs) {
-  const { handle } = params;
-  const { storefront } = context;
+export async function loader({request, params, context}: LoaderArgs) {
+  const {handle} = params;
+  const {storefront} = context;
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 8,
   });
@@ -29,8 +25,8 @@ export async function loader({ request, params, context }: LoaderArgs) {
     return redirect('/collections');
   }
 
-  const { collection } = await storefront.query(COLLECTION_QUERY, {
-    variables: { handle, ...paginationVariables },
+  const {collection} = await storefront.query(COLLECTION_QUERY, {
+    variables: {handle, ...paginationVariables},
   });
 
   if (!collection) {
@@ -38,18 +34,18 @@ export async function loader({ request, params, context }: LoaderArgs) {
       status: 404,
     });
   }
-  return json({ collection });
+  return json({collection});
 }
 
 export default function Collection() {
-  const { collection } = useLoaderData<typeof loader>();
+  const {collection} = useLoaderData<typeof loader>();
 
   return (
     <div className="collection">
       <h1>{collection.title}</h1>
       <p className="collection-description">{collection.description}</p>
       <Pagination connection={collection.products}>
-        {({ nodes, isLoading, PreviousLink, NextLink }) => (
+        {({nodes, isLoading, PreviousLink, NextLink}) => (
           <>
             <PreviousLink>
               {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
@@ -66,7 +62,7 @@ export default function Collection() {
   );
 }
 
-function ProductsGrid({ products }: { products: ProductItemFragment[] }) {
+function ProductsGrid({products}: {products: ProductItemFragment[]}) {
   // re-matches the cards to BOGOS offers whenever the page of products changes
   useBogosProductListSync(bogosListKey(products));
 
@@ -95,30 +91,35 @@ function ProductItem({
   const variant = product.variants.nodes[0];
   const variantUrl = useVariantUrl(product.handle, variant.selectedOptions);
 
-  const [isBogosGift, setIsBogosGift] = useState(false)
+  const [isBogosGift, setIsBogosGift] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     setTimeout(() => {
       window.BOGOS_CORE?.helper?.gift?.renderCustomizeForProduct(
-        [{ id: product.id }],
-        { collection: true },
+        [{id: product.id}],
+        {collection: true},
       );
-    }, 500)
+    }, 500);
   }, [product.id]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     // Bogos gift handle: sca_clone_freegift, Bogos gift tags: bogos-gift
     const checkBogosGift = (product: any) => {
-      return product.handle.includes('sca_clone_freegift') || product?.tags?.includes('bogos-gift');
-    }
+      return (
+        product.handle.includes('sca_clone_freegift') ||
+        product?.tags?.includes('bogos-gift')
+      );
+    };
 
-    const isGift = window.BOGOS_CORE?.helper?.gift?.checkItemIsGift(product) || checkBogosGift(product);
+    const isGift =
+      window.BOGOS_CORE?.helper?.gift?.checkItemIsGift(product) ||
+      checkBogosGift(product);
     if (isGift && !isBogosGift) {
       setIsBogosGift(isGift);
-    };
+    }
   }, [product, isBogosGift]);
 
   if (isBogosGift) {
@@ -131,10 +132,10 @@ function ProductItem({
       key={product.id}
       prefetch="intent"
       to={variantUrl}
-      style={{ position: 'relative' }}
+      style={{position: 'relative'}}
     >
       {product.featuredImage && (
-        <div className="card__media">
+        <div className="card__media bogos-product-card-media">
           <Image
             alt={product.featuredImage.altText || product.title}
             aspectRatio="1/1"

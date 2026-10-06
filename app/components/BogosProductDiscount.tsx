@@ -10,8 +10,14 @@ import {useEffect} from 'react';
  * use the class names it already looks for:
  *
  *   - `.fg-secomapp-collection-img` on the card (already there for gift icons)
- *   - `.card__media` on the box holding the image -- the badge goes there
- *   - `.price` around the native price -- the SDK hides it and inserts its own
+ *   - `.bogos-product-card-media` on the box holding the image -- the badge
+ *     goes there
+ *   - `.bogos-product-card-price` around the native price -- the SDK hides it
+ *     and inserts its own
+ *
+ * The last two are BOGOS' own marker classes, matched ahead of the theme
+ * selectors the SDK falls back to (`.card__media`, `.price`, ...), so renaming
+ * this storefront's CSS cannot silently break the integration.
  *
  * Plus the marker div below, and a `bogos:discount-init` dispatch when the list
  * changes.
@@ -54,7 +60,7 @@ export function BogosProductDiscountPrice({
 }) {
   return (
     <>
-      <span className="price">
+      <span className="price bogos-product-card-price">
         {price && <Money data={price} />}
       </span>
     </>
